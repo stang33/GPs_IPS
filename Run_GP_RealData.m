@@ -1,3 +1,4 @@
+% (c) XXXX
 %% Test CSF with real data
 addpaths;
 clear all;
@@ -56,7 +57,6 @@ sysInfo.K               = 1;                                                    
 sysInfo.ode_order       = 2;                                                                       % order of the ODE system
 sysInfo.type_info       = ones(1, sysInfo.N);                                                     % function mapping agent index to its type index
 sysInfo.RE              = [];                                                                      % energy based reulation on interactoin beween agent i and agent i'
-sysInfo.flagxi          = 0;
 
 sysInfo.domain          = [floor(min(min(x1))), ceil(max(max(x1)))];
 sysInfo.type = 1;
@@ -119,7 +119,6 @@ learnInfo.N = sysInfo.N;
 learnInfo.d = sysInfo.d;
 learnInfo.order = sysInfo.ode_order;
 learnInfo.name = sysInfo.name;
-learnInfo.flagxi = sysInfo.flagxi;
 learnInfo.L= size(xpath_train,2)*size(xpath_train,3);
 learnInfo.X = X_train;
 learnInfo.Y = Y_train;
