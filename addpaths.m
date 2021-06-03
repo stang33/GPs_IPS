@@ -9,6 +9,8 @@ addpath([home_path '/Generate_data/']);
 %addpath([home_path '/performance/']);
 addpath(genpath([home_path '/Examples/']));
 addpath(genpath([home_path '/Plotting/']));
+addpath(genpath([home_path '/Realdata/']));
+
 
 %addpath([home_path '/outputs/']);
 
