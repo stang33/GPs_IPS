@@ -144,6 +144,10 @@ end
 
 [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
 
+%Once the kernel is learned, store these once to avoid recomputing.
+learnInfo.invK = pinv(learnInfo.K);
+learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
+
 visualize_phis_realdata(sysInfo,obsInfo,learnInfo);
 
 

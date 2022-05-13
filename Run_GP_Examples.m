@@ -114,6 +114,10 @@ for k = 1:nT
 
     [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -600);
     [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
+
+    %Once the kernel is learned, store these once to avoid recomputing.
+    learnInfo.invK = pinv(learnInfo.K);
+    learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
     
     hypparameters(:,k) = exp(learnInfo.hyp);
     if strcmp('ODS',learnInfo.name) 
