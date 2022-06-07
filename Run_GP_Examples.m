@@ -124,6 +124,11 @@ for k = 1:nT
         hypparameters(5:end,k) = learnInfo.hyp(5:end);
     end
     
+    % %% visualize the kernel
+    fprintf('visualize the learning of the kernel...\n ');
+
+    learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo);
+    
     range = [0, learnInfo.rhoLT.edges(max(find(learnInfo.rhoLT.rdens~=0)))];
     
     [errorphis(1,k),errorphis(2,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range);
@@ -132,11 +137,7 @@ for k = 1:nT
     result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
     errortrajs_test(:,k) = [result_test.train_traj_error result_test.prediction_traj_error]';
 end
-% 
-% %% visualize the kernel
-fprintf('visualize the learning of the kernel...\n ');
 
-visualize_phis(sysInfo,obsInfo,learnInfo)
 
 %% save files
 filename=strcat(sysInfo.name,'M',num2str(obsInfo.M),'L',num2str(length(obsInfo.time_vec)));
