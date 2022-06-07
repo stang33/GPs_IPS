@@ -8,8 +8,8 @@ d = learnInfo.d;
 order = learnInfo.order;
 dN = d*N*order;
 
-myODE1     = @(t,x)predict_ode(x,learnInfo);
-
+% myODE1     = @(t,x)predict_ode(x,learnInfo);
+myODE1     = @(t,x)predict_ode_interp(x,learnInfo);
 
 
 
