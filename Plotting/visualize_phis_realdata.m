@@ -67,6 +67,9 @@ edges_idxs =edges_idxs_fine(1:5:end);
 centers =edges(edges_idxs);
 histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % this is the "true" \rhoLT from many MC simulations
 
+%% save the result posterior mean
+learnInfo.r = r;
+learnInfo.phi = phi_mean;
 
 %% plot the density of rho
 yyaxis right                                                                                % display \rho^L_T and its estimator
