@@ -148,7 +148,7 @@ end
 learnInfo.invK = pinv(learnInfo.K);
 learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
 
-visualize_phis_realdata(sysInfo,obsInfo,learnInfo);
+learnInfo = visualize_phis_realdata(sysInfo,obsInfo,learnInfo);
 
 
 %%
