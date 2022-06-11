@@ -6,7 +6,7 @@ function Example = FM_def()
 % System
 sysInfo.name            = 'FM';                                                   % name of the dynamics
 sysInfo.d               = 2;                                                                       % dimension for the state vector (in this case, opinion vector)
-sysInfo.N               = 10;                                                                      % # of agents
+sysInfo.N               = 5;                                                                      % # of agents
 sysInfo.phi            = {@(r)FM_kernel(r,sysInfo.N), @(v,d) FM_ncforce(v,d)};                                               % energy based interaction
 sysInfo.phi_type        = 'x';
 sysInfo.K               = 1;                                                                       % # of types
@@ -28,7 +28,7 @@ obsInfo.M               = 3;                                                    
 obsInfo.time_vec = 0:2.5:5;
 % Observations will be up to this time
 obsInfo.use_derivative  = true;                                                                   % indicator of the availability of derivative data
-obsInfo.obs_noise       = 0.1;
+obsInfo.obs_noise       = 0.01;
 obsInfo.mu_trajnoise    = @(traj,sigma) trajUnifNoiseAdditive( traj, sigma );
 obsInfo.rho_T_histedges    = linspace(0,sysInfo.domain(2),1000);  % a rather arbitrary set of bins to track estimators of \rho^L_T
 
