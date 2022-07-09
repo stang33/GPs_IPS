@@ -1,4 +1,4 @@
-function [e1, e2] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,kernel_type)
+function [learnInfo, e1, e2] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,kernel_type)
 
 % compute L-infinity and L2-rhoT norms for phis
 
@@ -44,6 +44,14 @@ edges_idxs =edges_idxs_fine(1:5:end);
 %centers =centers_fine(1:20:end);
 centers =edges(edges_idxs);
 %histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % this is the "true" \rhoLT from many MC simulations
+
+%% save the result posterior mean
+learnInfo.r = r;
+if kernel_type == 'E'
+    learnInfo.phiE = phi_mean;
+elseif kernel_type == 'A'
+    learnInfo.phiA = phi_mean;
+end        
 
 %% compute the error norms for phis
 if relative

@@ -86,7 +86,7 @@ if strcmp('AD',learnInfo.name)
 end
 
 
-nT = 10;     %number of trials
+nT = 1;     %number of trials
 errorphis = zeros(4,nT);      %store errors of phis in L-infinity and L2rhoT norms
 errortrajs_train = zeros(4,nT);     %store mean and std of trajectory error in training data
 errortrajs_test = zeros(4,nT);      %store mean and std of trajectory error in testing data
@@ -133,11 +133,15 @@ for k = 1:nT
     learnInfo.sub = randsample(1:learnInfo.N,learnInfo.Nsub);
     
     Glik_hyp = @(hyp)Glik(learnInfo,hyp);
-
-
-    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -600);
+    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -100);
+    
+    learnInfo.option = 'alldata';
     [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
-    learnInfo.CoefM = pinv(learnInfo.K)*learnInfo.Ym; % compute the coeficient matrix
+    % learnInfo.CoefM = pinv(learnInfo.K)*learnInfo.Ym; % compute the coeficient matrix
+    
+    % Once the kernel is learned, store these once to avoid recomputing.
+    learnInfo.invK = pinv(learnInfo.K);
+    learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
 
     
     hypparameters(:,k) = exp(learnInfo.hyp);
@@ -154,8 +158,8 @@ for k = 1:nT
         
     range = [0, learnInfo.rhoLT.edges(max(find(learnInfo.rhoLT.rdens~=0)))];
     
-    [errorphis(1,k),errorphis(2,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'E');
-    [errorphis(3,k),errorphis(4,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'A');
+    [learnInfo, errorphis(1,k),errorphis(2,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'E');
+    [learnInfo, errorphis(3,k),errorphis(4,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'A');
     result_train = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo, learnInfo.xpath_train(:,1,:));
     errortrajs_train(:,k) = [result_train.train_traj_error result_train.prediction_traj_error]';
     result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
@@ -165,9 +169,9 @@ end
 % %% visualize the kernel
 % fprintf('visualize the learning of the kernel...\n ');
 
-% visualize_phis(sysInfo,obsInfo,learnInfo,'E')
+% learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'E');
 
-% visualize_phis(sysInfo,obsInfo,learnInfo,'A')
+% learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'A')
 
 %% save files
 if strcmp('subset',learnInfo.option)

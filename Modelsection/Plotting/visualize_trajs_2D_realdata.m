@@ -56,6 +56,7 @@ trajs{2}             = traj_hat;
 
 
 train_time_vec             = 0:1:28;
+%prediction_time_vec        = 29:1:197;
 prediction_time_vec        = 29:1:95;
 time_vec=[train_time_vec(1:end) prediction_time_vec];
 

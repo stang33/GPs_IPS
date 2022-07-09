@@ -1,4 +1,4 @@
-function visualize_phis_realdata(sysInfo,obsInfo,learnInfo)
+function learnInfo = visualize_phis_realdata(sysInfo,obsInfo,learnInfo,kernel_type)
 
 
 
@@ -44,13 +44,33 @@ rho_emp = learnInfo.rho_emp;
 plot_info.plot_name = strcat(sysInfo.name,'_results_phis');
 one_knot                =  rho_emp.edges;                 % find out the knot vector
 range     = [one_knot(1), one_knot(end)];                                 % plot the uniform learning result first; use the knot vectors as the range
-r           = one_knot(1):(one_knot(2)-one_knot(1)):range(2);                                % refine this knot vector, so that each sub-interval generated a knot has at least 7 interior points, so 3 levels of refinement
+r           = one_knot(1):(one_knot(2)-one_knot(1)):2*range(2);                                % refine this knot vector, so that each sub-interval generated a knot has at least 7 interior points, so 3 levels of refinement
 %r(r<range(1) | r>range(2))  = [];
 %r                           = r(r>=0 & r<=rho_emp.edgesSupp(end) );
 
 %% for phi in the state variable 
 % phi                       = sysInfo.phi{1}(r);
-[phi_mean,phi_cov]=phi_pos(r,learnInfo);
+%% for phi in the state variable 
+if learnInfo.order == 1
+    phi                  = sysInfo.phi{1}(r);
+    [phi_mean,phi_cov]   = phi_pos(r,learnInfo,'E');
+    
+elseif sysInfo.phi_type == 'EA'
+    if kernel_type == 'E'
+        phi                  = sysInfo.phi{1}(r);
+    else
+        phi                  = sysInfo.phi{2}(r);
+    end
+    [phi_mean,phi_cov]   = phi_pos(r,learnInfo,kernel_type);
+    
+elseif kernel_type == sysInfo.phi_type
+        phi                  = sysInfo.phi{1}(r);
+        [phi_mean,phi_cov]   = phi_pos(r,learnInfo,kernel_type);
+else
+    phi                  = 0*r;
+    [phi_mean,phi_cov]   = phi_pos(r,learnInfo,kernel_type);
+end
+
 cov=diag(phi_cov);
 cov(cov<0)=0;
 phi_cov_diag = sqrt(cov);
@@ -67,6 +87,14 @@ edges_idxs =edges_idxs_fine(1:5:end);
 centers =edges(edges_idxs);
 histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % this is the "true" \rhoLT from many MC simulations
 
+
+%% save the result posterior mean
+learnInfo.r = r;
+if kernel_type == 'E'
+    learnInfo.phiE = phi_mean;
+elseif kernel_type == 'A'
+    learnInfo.phiA = phi_mean;
+end        
 
 %% plot the density of rho
 yyaxis right                                                                                % display \rho^L_T and its estimator

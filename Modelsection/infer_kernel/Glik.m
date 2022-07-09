@@ -143,10 +143,9 @@ elseif strcmp('CSF',name)
     logb = hyp(7);
     for i = 1:L
         for j = 1:Nsub
-            Ym((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = Y((d*N1*(i-1)+1+d*(sub(j)-1)):(d*N1*(i-1)+d*sub(j))) - (exp(loga) * X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j)))*(1- norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2)^exp(logb)));
-            Yda((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = - X((dN*(i-1)+1+dN1+d*(j-1)):(dN*(i-1)+dN1+d*sub(j)))*(1- norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2)^exp(logb))*exp(loga);
+            Ym((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = Y((dN1*(i-1)+1+d*(sub(j)-1)):(dN1*(i-1)+d*sub(j))) - (exp(loga) * X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j)))*(1- norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2)^exp(logb)));
+            Yda((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = - X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j)))*(1- norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2)^exp(logb))*exp(loga);
             Ydb((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = exp(loga) * X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j)))*norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2)^exp(logb)*log(norm(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))),2))*exp(logb);
-
         end
     end
     learnInfo.Ym = Ym;

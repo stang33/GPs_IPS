@@ -29,7 +29,8 @@ if order ==2&&strcmp(learnInfo.name,'AD')
  myODE     = @(t,y) RHSfn_2nd_tk(t,y,N,sysInfo.phi{1},sysInfo.phi{2},sysInfo.phi{3});
 end
 
-myODE1     = @(t,x)predict_ode(x,learnInfo);
+% myODE1     = @(t,x)predict_ode(x,learnInfo);
+myODE1     = @(t,x)predict_ode_interp(x,learnInfo);
 
 train_time_vec=obsInfo.time_vec;
 test_time_vec = [train_time_vec(1:end-1) linspace(train_time_vec(end),sysInfo.T_f,50)];% prediction on [0, T_f]                                                                     % final time the system will reach steady state

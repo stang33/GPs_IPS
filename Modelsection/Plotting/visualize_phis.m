@@ -1,4 +1,4 @@
-function visualize_phis(sysInfo,obsInfo,learnInfo,kernel_type)
+function learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,kernel_type)
 % function visualize_phis(learningOutput, sys_info, obs_info, plot_info)
 
 % (c) XXXX
@@ -84,6 +84,13 @@ edges_idxs =edges_idxs_fine(1:5:end);
 centers =edges(edges_idxs);
 histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % this is the "true" \rhoLT from many MC simulations
 
+%% save the result posterior mean
+learnInfo.r = r;
+if kernel_type == 'E'
+    learnInfo.phiE = phi_mean;
+elseif kernel_type == 'A'
+    learnInfo.phiA = phi_mean;
+end        
 
 %% plot the density of rho
 yyaxis right                                                                                % display \rho^L_T and its estimator
