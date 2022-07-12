@@ -2,7 +2,7 @@ function [e1, e2] = errornorms_phis(sysInfo,obsInfo,learnInfo,range)
 
 % compute L-infinity and L2-rhoT norms for phis
 
-% (c) XXXX
+% (c) M. Zhong, S.Tang, Jinchao(JHU)
 
 %% load the parameters
 rho_emp = learnInfo.rhoLT;

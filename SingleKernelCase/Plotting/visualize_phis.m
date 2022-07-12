@@ -1,7 +1,7 @@
-function visualize_phis(sysInfo,obsInfo,learnInfo)
+function learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo)
 % function visualize_phis(learningOutput, sys_info, obs_info, plot_info)
 
-% (c) XXXX
+% (c) M. Zhong, S.Tang(JHU)
 
 
 
@@ -45,9 +45,10 @@ if isfield(plot_info, 'scrsz'), scrsz = plot_info.scrsz; else, scrsz = get(groot
 rho_emp = learnInfo.rho_emp;
 plot_info.plot_name = strcat(sysInfo.name,'_results_phis');
 one_knot                =  rho_emp.edges;                 % find out the knot vector
-range     = [one_knot(1), one_knot(end)];                                 % plot the uniform learning result first; use the knot vectors as the range
-r           = one_knot(1):(one_knot(2)-one_knot(1)):range(2);                                % refine this knot vector, so that each sub-interval generated a knot has at least 7 interior points, so 3 levels of refinement
-
+range     = [one_knot(1), one_knot(200)];                                 % plot the uniform learning result first; use the knot vectors as the range
+r           = one_knot(1):(one_knot(2)-one_knot(1)):2*range(2);                                % refine this knot vector, so that each sub-interval generated a knot has at least 7 interior points, so 3 levels of refinement
+%r(r<range(1) | r>range(2))  = [];
+%r                           = r(r>=0 & r<=rho_emp.edgesSupp(end) );
 
 %% for phi in the state variable 
 phi                       = sysInfo.phi{1}(r);
@@ -62,21 +63,36 @@ set(groot, 'CurrentFigure', phi_fig);                                           
 
 edges               = obsInfo.rho_T_histedges;  % Estimated \rho's
 edges_idxs_fine          = find(range(1) <= edges & edges<range(2));
+%centers_fine             = (edges(edges_idxs_fine(1):edges_idxs_fine(end)-1) + edges(edges_idxs_fine(1)+1:edges_idxs_fine(end)))/2;
+% downsampling of hist data by 50
 edges_idxs =edges_idxs_fine(1:5:end);
+%centers =centers_fine(1:20:end);
 centers =edges(edges_idxs);
 histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % this is the "true" \rhoLT from many MC simulations
 
-
+%% save the result posterior mean
+learnInfo.r = r;
+learnInfo.phi = phi_mean;
+      
 %% plot the density of rho
 yyaxis right                                                                                % display \rho^L_T and its estimator
 axesHandle1         = gca();
+%histHandle1         = plot(centers,histdata1,'k-','LineWidth',1);    hold on;
 hist1       = bar(centers,histdata1,'FaceColor', [.8 .8 .8]);    hold on;
 hist1.FaceAlpha = 0.5;
+%hist1               = fill(centers(([1 1:end end])),[0 histdata1 0], ...
+%    'k','EdgeColor','none','FaceAlpha',0.2);
 
 axesHandle1.FontSize           = plot_info.tick_font_size;
 axesHandle1.FontName           = plot_info.tick_font_name; 
 axis([range(1), range(2), 0, 2]);
 axis tight;
+
+%ylabelHandle = ylabel(axesHandle1,'$\hat\rho^L_T, \rho^{L,M}_T$','Interpreter','latex','FontSize',AXIS_FONT_SIZE);
+%set(ylabelHandle,'VerticalAlignment','bottom');
+%set(ylabelHandle,'Position',get(ylabelHandle,'Position').*[0.92,0.33,1]);
+
+
 
 
 
@@ -98,9 +114,12 @@ set(p,'facealpha',.5)
     
 legendHandle2=legend([plotHandle1,plotHandle2,hist1], ...
         {'$\phi$','$\hat{\phi}_{mean}$','$\hat\rho^L_T$'});
+    %ylabel(['$\phi, \hat{\phi}, \hat{\phi}_{reg}$'],'Interpreter','latex','FontSize',AXIS_FONT_SIZE);
     set(legendHandle2,'Location', 'NorthEast','Interpreter','latex','FontSize',plot_info.legend_font_size);
 
 
+
+% for opinion dynamics axis([range(1), range(2), -0.6, 1.5]); 
 axis([range(1), range(2), y_min, y_max]); 
 
 
@@ -109,10 +128,10 @@ xlabel('r (pairwise distances)','FontSize',plot_info.axis_font_size);
 ax = gca;
 outerpos = ax.OuterPosition;
 ti = ax.TightInset;
-left = outerpos(1) + ti(1);
-bottom = outerpos(2) + ti(2);
-ax_width = outerpos(3) - ti(1) - ti(3);
-ax_height = outerpos(4) - ti(2) - ti(4);
+left = outerpos(1) + 2*ti(1);
+bottom = outerpos(2) + 1.5*ti(2);
+ax_width = outerpos(3) - 2*ti(1) - 2*ti(3);
+ax_height = outerpos(4) - 1.7*ti(2) - ti(4);
 ax.Position = [left bottom ax_width ax_height];
 
 mkdir('./figures');

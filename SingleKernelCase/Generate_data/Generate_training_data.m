@@ -11,7 +11,7 @@ function [dxpath_test,xpath_test, dxpath_train, xpath_train] = Generate_training
 % Output:
 %  xpath       - solution of the ODE    Nd x L:
 %  dxpath      - the derivative function  Nd x L:
-% (c) XXXX
+% (c) Sui Tang
 %
 % ATTENTION:
 % % %  time   = dt:dt:tEnd;  ---- time instances of solution output NOT from t0
@@ -23,9 +23,16 @@ d         = sysInfo.d;         % dim of state vectors
 
 switch sysInfo.ode_order
     case 1
+        switch length(sysInfo.phi)
+            case 1
+               
+                myODE     = @(t,x) RHSfn(t,x,N,sysInfo.phi{1});
                 
-        myODE     = @(t,x) RHSfn_c(t,x,N,sysInfo.phi{1},sysInfo.phi{2});       
-
+            case 2
+                
+                myODE     = @(t,x) RHSfn_c(t,x,N,sysInfo.phi{1},sysInfo.phi{2});       
+        
+         end
         xpath_train = zeros(d*N,length(obsInfo.time_vec),obsInfo.M);
         dxpath_train = zeros(d*N,length(obsInfo.time_vec),obsInfo.M);
 
@@ -60,8 +67,24 @@ switch sysInfo.ode_order
         
     case 2
         
-        myODE     = @(t,y) RHSfn_2nd_ncf(t,y,N,sysInfo.phi{1},sysInfo.phi{2},sysInfo.phi_type);
+        switch length(sysInfo.phi)
+            case 1
+               
+                myODE     = @(t,y) RHSfn_2nd(t,y,N,sysInfo.phi{1});
                 
+            case 2
+                
+                myODE     = @(t,y) RHSfn_2nd_ncf(t,y,N,sysInfo.phi{1},sysInfo.phi{2},sysInfo.phi_type);
+            
+            case 3
+                
+                myODE     = @(t,y) RHSfn_2nd_tk(t,y,N,sysInfo.phi{1},sysInfo.phi{2},sysInfo.phi{3});
+
+            case 4
+                
+                myODE     = @(t,y) RHSfn_2nd_ncf_xi(t,y,N,sysInfo.phi{1},sysInfo.phi{2},sysInfo.phi{3},sysInfo.phi{4});
+
+        end
         xpath_train = zeros(d*2*N,length(obsInfo.time_vec),obsInfo.M);
         dxpath_train = zeros(d*2*N,length(obsInfo.time_vec),obsInfo.M);
         test_time_vec= [obsInfo.time_vec(1:end-1) linspace(obsInfo.time_vec(end),sysInfo. T_f,10)];                                                                     % final time the system will reach steady state
