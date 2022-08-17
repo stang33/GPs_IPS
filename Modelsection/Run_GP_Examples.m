@@ -3,6 +3,7 @@
 addpaths;
 clear all;
 close all;
+USE_ACCELERATION = true;
 
 %% Set 2parameters
 if ispc, SAVE_DIR = [getenv('USERPROFILE'), '\DataAnalyses\LearningDynamics']; else, SAVE_DIR = [getenv('HOME'), '/DataAnalyses/LearningDynamics']; end % Please keep this fixed, simply create a symlink ~/DataAnalyses pointing wherever you like                           
@@ -46,7 +47,7 @@ learnInfo.Cov = 'Matern';
 learnInfo.dtraj ='false'; % do not compute dtraj during trajectory computation
 
 
-learnInfo.v = 3/2; % 1/2, 3/2, 5/2, 7/2
+learnInfo.v = 1/2; % 1/2, 3/2, 5/2, 7/2
 
 if strcmp('ODS',learnInfo.name)   
    learnInfo.hyp0 = log([1  1 NaN 1/2 exp(1/2) exp(1/2) exp(1/2)]); % initialization of logsigma logomega, lognoise, logk, Pa, Pb, Pc
@@ -78,6 +79,7 @@ end
 
 if strcmp('AD',learnInfo.name) 
    % learnInfo.hyp0 = log([1  1  1  1 NaN]); % initialization of logsigma_E, logomega_E,logsigma_A, logomega_A, lognoise
+   % learnInfo.hyp0 = log([rand(1,4) NaN]);
    learnInfo.hyp0 = log([rand(1,4) NaN]);
    if obsInfo.obs_noise ~= 0
        % learnInfo.hyp0(5) = log(1/2);
@@ -165,13 +167,74 @@ for k = 1:nT
     result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
     errortrajs_test(:,k) = [result_test.train_traj_error result_test.prediction_traj_error]';
 end
-% 
-% %% visualize the kernel
-% fprintf('visualize the learning of the kernel...\n ');
 
-% learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'E');
+%% visualize the kernel
+fprintf('visualize the learning of the kernel...\n ');
 
-% learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'A')
+if ~USE_ACCELERATION
+
+learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'E');
+learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'A');
+
+else
+
+%Get constants.
+deltaE = exp(learnInfo.hyp(1));
+omegaE = exp(learnInfo.hyp(2));
+deltaA = exp(learnInfo.hyp(3));
+omegaA = exp(learnInfo.hyp(4));
+sigma = exp(learnInfo.hyp(5))^2;
+
+%If sigma is NaN, there is no noise.
+if isnan(sigma)
+    sigma = 0;
+end
+
+M = obsInfo.M;
+LForDecomp = obsInfo.L;
+n = learnInfo.N;
+D = learnInfo.d;
+
+%Adjustable parameters.
+CGErrorTol = 10^(-5);
+CG_ITER_LIMIT = 50;
+
+%Decomp for K_E.
+data = learnInfo.xpath_train(1:2*n,:,:);
+dataA = learnInfo.xpath_train(2*n+1:4*n,:,:);
+[U_re, P_r, P_c, rhoVect, ~, newRawIndices, ~, ms, ls] = SparseDecomp(data, data, learnInfo, M, LForDecomp, omegaE, deltaE);
+
+%Multiply by K_E.
+MultByKNoNoiseTerm = @(x)multByKernelGeneralNoNoiseTerm(x, sigma, n, D, M, LForDecomp, U_re, P_r, P_c, rhoVect, newRawIndices, deltaE, ls, ms);
+
+%Decomp for K_A.
+[U_re, P_r, P_c, rhoVect, ~, newRawIndices, ds, ms, ls] = SparseDecomp(data, dataA, learnInfo, M, LForDecomp, omegaA, deltaA);
+
+%Multiply by K_A.
+MultByKNoNoiseTermA = @(x)multByKernelGeneralNoNoiseTerm(x, sigma, n, D, M, LForDecomp, U_re, P_r, P_c, rhoVect, newRawIndices, deltaA, ls, ms);
+
+%Multiply by K + sigmaI.
+MultByWholeK = @(x) MultByKNoNoiseTerm(x) + MultByKNoNoiseTermA(x) + sigma*x;
+
+%TODO: Add Preconditioner.
+PreConInv = @(x) x;
+
+%Multiply by entire (K+sigmaI)^-1.
+multByKInv = @(x) StandardPCG(MultByWholeK, x, PreConInv, CGErrorTol, CG_ITER_LIMIT);
+
+%Now let's test matrix multiplication.
+multMatByKInv = @(X) RunCGOnMatrixInitGuesser(MultByWholeK, X, PreConInv, CGErrorTol, CG_ITER_LIMIT);
+
+%Compute the Ym product once.
+learnInfo.invKTimesYm = multByKInv(learnInfo.Ym);
+
+%Visualize phis.
+visualize_phis_CG(sysInfo,obsInfo,learnInfo,'E', multMatByKInv);
+visualize_phis_CG(sysInfo,obsInfo,learnInfo,'A', multMatByKInv);
+
+
+end
+
 
 %% save files
 if strcmp('subset',learnInfo.option)

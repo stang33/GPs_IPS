@@ -5,6 +5,7 @@ restoredefaultpath;
 home_path = [pwd filesep];
 %addpath([home_path '/DE_solver/']);
 addpath([home_path '/infer_kernel/']);
+addpath([home_path '/Accel/']);
 addpath([home_path '/Generate_data/']);
 %addpath([home_path '/performance/']);
 addpath(genpath([home_path '/Examples/']));
