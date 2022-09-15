@@ -73,6 +73,7 @@ histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % th
 %% save the result posterior mean
 learnInfo.r = r;
 learnInfo.phi = phi_mean;
+learnInfo.phi_cov = phi_cov_diag;
       
 %% plot the density of rho
 yyaxis right                                                                                % display \rho^L_T and its estimator

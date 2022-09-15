@@ -120,7 +120,7 @@ for ind = 1 : length(trajs)
   if ind == 1 || ind == 3
     leg_handle                 = legend(l_handle, {'$\mathbf{x}_i(t)$','$\hat\mathbf{x}_i(t)$'});
   elseif ind == 2 || ind == 4
-    leg_handle                 = legend(l_handle, {'$\mathbf{x}_i(t)$','$\hat\mathbf{x}_i(t)$'});
+    leg_handle                 = legend(l_handle, {'$\hat\mathbf{x}_i(t)$','$\hat\mathbf{x}_i(t)$'});
 
   elseif ind == 5 || ind == 6
     leg_handle                 = legend(l_handle, {'$\mathbf{x}_i^{LN}(t)$'});

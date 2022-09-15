@@ -144,12 +144,13 @@ end
 
 [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
 
-visualize_phis_realdata(sysInfo,obsInfo,learnInfo);
+learnInfo = visualize_phis_realdata(sysInfo,obsInfo,learnInfo);
 
 
 %%
 
 traj_hat = construct_traj(learnInfo,test_time_vec,xpath_train(:,1));
+% [traj_hat, traj_hat_std] = construct_traj_mcuq(learnInfo,sysInfo,test_time_vec,xpath_train(:,1));
 if training.opt
     filename=strcat(sysInfo.name,'Realdatalearning100','.mat');
 else
