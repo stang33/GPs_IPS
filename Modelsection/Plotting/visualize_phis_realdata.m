@@ -92,8 +92,12 @@ histdata1            = rho_emp.rdens(edges_idxs(1:end));                    % th
 learnInfo.r = r;
 if kernel_type == 'E'
     learnInfo.phiE = phi_mean;
+    learnInfo.phiE_cov = phi_cov_diag;
+
 elseif kernel_type == 'A'
     learnInfo.phiA = phi_mean;
+    learnInfo.phiA_cov = phi_cov_diag;
+
 end        
 
 %% plot the density of rho

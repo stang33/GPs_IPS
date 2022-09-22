@@ -48,6 +48,13 @@ learnInfo.dtraj ='false'; % do not compute dtraj during trajectory computation
 
 learnInfo.v = 3/2; % 1/2, 3/2, 5/2, 7/2
 
+if strcmp('OD',learnInfo.name)   
+   learnInfo.hyp0 = log([1  1 NaN 1/2]); % initialization of logsigma logomega, lognoise, logk, Pa, Pb, Pc
+   if obsInfo.obs_noise ~= 0
+       learnInfo.hyp0(3) = log(1/2);
+   end
+end
+
 if strcmp('ODS',learnInfo.name)   
    learnInfo.hyp0 = log([1  1 NaN 1/2 exp(1/2) exp(1/2) exp(1/2)]); % initialization of logsigma logomega, lognoise, logk, Pa, Pb, Pc
    if obsInfo.obs_noise ~= 0
@@ -112,7 +119,7 @@ for k = 1:nT
     learnInfo.hyp = learnInfo.hyp0;
     Glik_hyp = @(hyp)Glik(learnInfo,hyp);
 
-    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -600);
+    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -100);
     [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
     
     hypparameters(:,k) = exp(learnInfo.hyp);

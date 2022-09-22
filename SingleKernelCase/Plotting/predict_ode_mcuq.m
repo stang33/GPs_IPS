@@ -28,7 +28,7 @@ if order ==1
         DD        = sqrt( sum(temp.^2,1) ); % 1 x N
         DD(DD==0) = 1;  %  this step is to avoid 0 x inf= NAN
         aa(:,i)   = temp*interp1(learnInfo.r,learnInfo.phi',DD)'/N;   % d x 1
-        aa_cov(:,i) = temp*interp1(learnInfo.r,learnInfo.phi_cov',DD)'/N;
+        aa_cov(:,i) = sqrt(temp.^2*interp1(learnInfo.r,learnInfo.phi_cov',DD)'.^2/N^2);
         aa(:,i)   = aa(:,i) + (rand(d,1)-0.5)*2.*aa_cov(:,i);
     end
     mf = reshape(aa,[],1); % dN x 1 
@@ -47,13 +47,12 @@ if order ==2
 
     if strcmp(name,'CSF')
         aa= zeros(d,N);
-        aa_cov = zeros(d,N);
         for i=1:N
             temp_position      = x1p(:,[1:i-1 i+1:N])- repmat(x1p(:,i),1,N-1);  % d x N-1 [x_1-x_i,\cdots,x_{i-1}-x_i,x_{i+1}-x_i,\cdot,x_N-x_i]
             DD        = sqrt( sum(temp_position.^2,1) ); % 1 x N-1
             temp_velocity      = x1v(:,[1:i-1 i+1:N])- repmat(x1v(:,i),1,N-1);  % d x N-1 [v_1-v_i,\cdots,v_{i-1}-v_i,v_{i+1}-v_i,\cdot, v_N-v_i]
             aa(:,i)   = temp_velocity * interp1(learnInfo.r,learnInfo.phi',DD)'/N;   % d x 1
-            aa_cov(:,i) = temp_velocity*interp1(learnInfo.r,2*learnInfo.phi_cov',DD)'/N;
+            aa_cov(:,i) = sqrt(temp_velocity.^2*interp1(learnInfo.r,2*learnInfo.phi_cov',DD)'.^2/N^2);
             aa(:,i)   = aa(:,i) + (rand(d,1)-0.5)*2.*aa_cov(:,i);
 
         end
@@ -69,12 +68,11 @@ if order ==2
         
     elseif strcmp(name,'FM')
         aa= zeros(d,N);
-        aa_cov = zeros(d,N);
         for i=1:N
             temp_position      = x1p(:,[1:i-1 i+1:N])- repmat(x1p(:,i),1,N-1);  % d x N-1 [x_1-x_i,\cdots,x_{i-1}-x_i,x_{i+1}-x_i,\cdot,x_N-x_i]
             DD        = sqrt( sum(temp_position.^2,1) ); % 1 x N-1
             aa(:,i)   = temp_position * interp1(learnInfo.r,learnInfo.phi',DD)'/N;   % d x 1
-            aa_cov(:,i) = temp_position*interp1(learnInfo.r,learnInfo.phi_cov',DD)'/N;
+            aa_cov(:,i) = sqrt(temp_position.^2*interp1(learnInfo.r,learnInfo.phi_cov',DD)'.^2/N^2);
             aa(:,i)   = aa(:,i) + (rand(d,1)-0.5)*2.*aa_cov(:,i);
         end
         mf(1:dN/order,1)=xstar(dN/order+1:end);
