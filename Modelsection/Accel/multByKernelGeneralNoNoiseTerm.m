@@ -66,7 +66,21 @@ for m = 1 : M
                 row = U_re((j-1)*n + i + (l-1)*n*D + (m-1)*n*D*L, :);
 
                 %Delete 0s from same particle dists.
-                row(row==0) = [];
+                %Note: Only delete 1 zero!
+                deleted = false;
+                newRow = zeros(1,n-1);
+                Index = 1;
+                for q = 1 : n
+                    if deleted || row(1,q) ~= 0
+                        newRow(1,Index) = row(1,q);
+                        Index = Index + 1;
+                    elseif row(1,q) == 0
+                        deleted = true;
+                    end
+                end
+
+                %row(row==0) = [];
+                row = newRow;
         
                 %Retreive correct indices from decomp.
                 indexSet = P_c(i+ (l-1)*n + (m-1)*L*n,:);    

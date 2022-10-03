@@ -21,7 +21,7 @@ function [U_re, P_r, P_c, rhoVect, newIndices, newRawIndices, ds, ms, ls] = Spar
             end
         end
     end
-    
+
     %U_re is constructed properly and ready to return.
     %Next, make the pairwise distances.   
 

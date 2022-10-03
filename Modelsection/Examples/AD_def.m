@@ -36,7 +36,7 @@ solverInfo.option = odeset('RelTol',1e-5,'AbsTol',1e-6);
 
 % Observations
 obsInfo.L               = 3;                                                                     % observe (equi-spaced) times
-obsInfo.M               = 4;                                                                     % # trajectories with random initial conditions for learning interaction kernel
+obsInfo.M               = 2;                                                                     % # trajectories with random initial conditions for learning interaction kernel
 obsInfo.M_rhoT          = 2000;                                                                    % # trajectories with random initial conditions to compute approximate \rho_T
 obsInfo.T_0             = 0;                                                                       % Observation time interval [T_0, T]
 obsInfo.T               = sysInfo.T_f/2;                                                          % Observation time interval [T_0, T]

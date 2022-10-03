@@ -101,16 +101,28 @@ if strcmp('ODS',name)
     Pa = hyp(5); % parameter in control term
     Pb = hyp(6); % parameter in control term
     Pc = hyp(7); % parameter in control term
+%     for i = 1:L
+%         Ym((dN1*(i-1)+1):(dN1*(i-1)+d)) = Y((dN1*(i-1)+1):(dN1*(i-1)+d)) + exp(logk)*(X((dN1*(i-1)+1):(dN1*(i-1)+d)) - Pa);
+%         Ym((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = Y((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) + exp(logk)*(X((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) - Pb);
+%         Ym((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = Y((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) + exp(logk)*(X((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) - Pc);
+%         Ydk((dN1*(i-1)+1):(dN1*(i-1)+d)) = (X((dN1*(i-1)+1):(dN1*(i-1)+d)) - Pa)*exp(logk);
+%         Ydk((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = (X((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) - Pb)*exp(logk);
+%         Ydk((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = (X((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) - Pc)*exp(logk);
+%         YdPa((dN1*(i-1)+1):(dN1*(i-1)+d)) = -exp(logk);
+%         YdPb((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = -exp(logk);
+%         YdPc((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = -exp(logk);
+%     end
+
     for i = 1:L
-        Ym((dN1*(i-1)+1):(dN1*(i-1)+d)) = Y((dN1*(i-1)+1):(dN1*(i-1)+d)) + exp(logk)*(X((dN1*(i-1)+1):(dN1*(i-1)+d)) - Pa);
-        Ym((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = Y((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) + exp(logk)*(X((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) - Pb);
-        Ym((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = Y((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) + exp(logk)*(X((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) - Pc);
-        Ydk((dN1*(i-1)+1):(dN1*(i-1)+d)) = (X((dN1*(i-1)+1):(dN1*(i-1)+d)) - Pa)*exp(logk);
-        Ydk((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = (X((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) - Pb)*exp(logk);
-        Ydk((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = (X((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) - Pc)*exp(logk);
-        YdPa((dN1*(i-1)+1):(dN1*(i-1)+d)) = -exp(logk);
-        YdPb((dN1*(i-1)+d+1):(dN1*(i-1)+2*d)) = -exp(logk);
-        YdPc((dN1*(i-1)+2*d+1):(dN1*(i-1)+3*d)) = -exp(logk);
+        Ym((dNs*(i-1)+1):(dNs*(i-1)+d)) = Y((dNs*(i-1)+1):(dNs*(i-1)+d)) + exp(logk)*(X((dNs*(i-1)+1):(dNs*(i-1)+d)) - Pa);
+        Ym((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) = Y((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) + exp(logk)*(X((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) - Pb);
+        Ym((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) = Y((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) + exp(logk)*(X((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) - Pc);
+        Ydk((dNs*(i-1)+1):(dNs*(i-1)+d)) = (X((dNs*(i-1)+1):(dNs*(i-1)+d)) - Pa)*exp(logk);
+        Ydk((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) = (X((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) - Pb)*exp(logk);
+        Ydk((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) = (X((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) - Pc)*exp(logk);
+        YdPa((dNs*(i-1)+1):(dNs*(i-1)+d)) = -exp(logk);
+        YdPb((dNs*(i-1)+d+1):(dNs*(i-1)+2*d)) = -exp(logk);
+        YdPc((dNs*(i-1)+2*d+1):(dNs*(i-1)+3*d)) = -exp(logk);
     end
 
     learnInfo.Ym = Ym;
@@ -171,11 +183,16 @@ elseif strcmp('CSF',name)
 
 
 elseif strcmp('FM',name)
+
+    partdKo_E = dKo_E(1:20,1:20)
+
+
     Ym = zeros(dNs*L,1);
     Yda = zeros(dNs*L,1);
     Ydb = zeros(dNs*L,1);
     loga = hyp(6); % parameter in noncollective force
     logb = hyp(7);
+
     for i = 1:L
         for j = 1:Nsub
             Ym((dNs*(i-1)+1+d*(j-1)):(dNs*(i-1)+d*j)) = Y((dN1*(i-1)+1+d*(sub(j)-1)):(dN1*(i-1)+d*sub(j))) - (exp(loga) - exp(logb)*sum(X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j))).^2))*X((dN*(i-1)+1+dN1+d*(sub(j)-1)):(dN*(i-1)+dN1+d*sub(j)));
