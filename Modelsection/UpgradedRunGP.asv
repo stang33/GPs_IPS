@@ -3,7 +3,12 @@
 addpaths;
 clear all;
 close all;
+
+
+%Adjustable constant parameters.
 USE_ACCELERATION = true;
+CG_ERROR_TOL = 10^(-5);
+CG_ITER_LIMIT = 50;
 
 %% Set 2parameters
 if ispc, SAVE_DIR = [getenv('USERPROFILE'), '\DataAnalyses\LearningDynamics']; else, SAVE_DIR = [getenv('HOME'), '/DataAnalyses/LearningDynamics']; end % Please keep this fixed, simply create a symlink ~/DataAnalyses pointing wherever you like                           
@@ -129,10 +134,6 @@ for k = 1:nT
     learnInfo.dxpath_train = dxpath_train;
     
     learnInfo.hyp = learnInfo.hyp0;   
-
-
-    save("FM20L3M3");
-    return
     
     learnInfo.option = 'subset';  % doesn't work for ODS
     learnInfo.Nsub = 1;
@@ -141,13 +142,18 @@ for k = 1:nT
     Glik_hyp = @(hyp)Glik(learnInfo,hyp);
     [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -100);
     
-    learnInfo.option = 'alldata';
-    [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
-    % learnInfo.CoefM = pinv(learnInfo.K)*learnInfo.Ym; % compute the coeficient matrix
-    
-    % Once the kernel is learned, store these once to avoid recomputing.
-    learnInfo.invK = pinv(learnInfo.K);
-    learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
+
+    %If not accelerated, we must run additonal Glik to make full K and Ym.
+    if ~USE_ACCELERATION
+        learnInfo.option = 'alldata';
+        [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
+        learnInfo.invK = pinv(learnInfo.K);
+        learnInfo.invKprodYm = learnInfo.invK * learnInfo.Ym;
+    else
+        %If accelerated, then we only need Ym.
+        learnInfo.option = 'alldata';
+        learnInfo = GetYm(learnInfo,learnInfo.hyp);
+    end
 
     
     hypparameters(:,k) = exp(learnInfo.hyp);
@@ -164,8 +170,8 @@ for k = 1:nT
         
     range = [0, learnInfo.rhoLT.edges(max(find(learnInfo.rhoLT.rdens~=0)))];
     
-    [learnInfo, errorphis(1,k),errorphis(2,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'E');
-    [learnInfo, errorphis(3,k),errorphis(4,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'A');
+%     [learnInfo, errorphis(1,k),errorphis(2,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'E');
+%     [learnInfo, errorphis(3,k),errorphis(4,k)] = errornorms_phis(sysInfo,obsInfo,learnInfo,range,'A');
 %     result_train = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo, learnInfo.xpath_train(:,1,:));
 %     errortrajs_train(:,k) = [result_train.train_traj_error result_train.prediction_traj_error]';
 %     result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
@@ -182,6 +188,7 @@ learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'A');
 
 else
 
+
 %Get constants.
 deltaE = exp(learnInfo.hyp(1));
 omegaE = exp(learnInfo.hyp(2));
@@ -191,17 +198,13 @@ sigma = exp(learnInfo.hyp(5))^2;
 
 %If sigma is NaN, there is no noise.
 if isnan(sigma)
-    sigma = 0;
+    sigma = learnInfo.jitter;
 end
 
 M = obsInfo.M;
 LForDecomp = obsInfo.L;
 n = learnInfo.N;
 D = learnInfo.d;
-
-%Adjustable parameters.
-CGErrorTol = 10^(-5);
-CG_ITER_LIMIT = 50;
 
 %Decomp for K_E.
 data = learnInfo.xpath_train(1:D*n,:,:);
@@ -221,20 +224,19 @@ MultByKNoNoiseTermA = @(x)multByKernelGeneralNoNoiseTerm(x, sigma, n, D, M, LFor
 MultByWholeK = @(x) MultByKNoNoiseTerm(x) + MultByKNoNoiseTermA(x) + sigma*x;
 
 
-
-V = randn(n*D*M*LForDecomp,1);
-
-norm(MultByKNoNoiseTerm(V) + MultByKNoNoiseTermA(V) + sigma*V - learnInfo.K*V)
+% %For debug
+% V = randn(n*D*M*LForDecomp,1);
+% norm(MultByKNoNoiseTerm(V) + MultByKNoNoiseTermA(V) + sigma*V - learnInfo.K*V)
 
 
 %TODO: Add Preconditioner.
 PreConInv = @(x) x;
 
 %Multiply by entire (K+sigmaI)^-1.
-multByKInv = @(x) StandardPCG(MultByWholeK, x, PreConInv, CGErrorTol, CG_ITER_LIMIT);
+multByKInv = @(x) StandardPCG(MultByWholeK, x, PreConInv, CG_ERROR_TOL, CG_ITER_LIMIT);
 
 %Now let's test matrix multiplication.
-multMatByKInv = @(X) RunCGOnMatrixInitGuesser(MultByWholeK, X, PreConInv, CGErrorTol, CG_ITER_LIMIT);
+multMatByKInv = @(X) RunCGOnMatrixInitGuesser(MultByWholeK, X, PreConInv, CG_ERROR_TOL, CG_ITER_LIMIT);
 
 %Compute the Ym product once.
 learnInfo.invKTimesYm = multByKInv(learnInfo.Ym);
@@ -245,6 +247,7 @@ visualize_phis_CG(sysInfo,obsInfo,learnInfo,'A', multMatByKInv);
 
 
 end
+
 
 
 %% save files

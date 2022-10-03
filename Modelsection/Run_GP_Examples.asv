@@ -129,10 +129,6 @@ for k = 1:nT
     learnInfo.dxpath_train = dxpath_train;
     
     learnInfo.hyp = learnInfo.hyp0;   
-
-
-    save("FM20L3M3");
-    return
     
     learnInfo.option = 'subset';  % doesn't work for ODS
     learnInfo.Nsub = 1;
@@ -224,7 +220,7 @@ MultByWholeK = @(x) MultByKNoNoiseTerm(x) + MultByKNoNoiseTermA(x) + sigma*x;
 
 V = randn(n*D*M*LForDecomp,1);
 
-norm(MultByKNoNoiseTerm(V) + MultByKNoNoiseTermA(V) + sigma*V - learnInfo.K*V)
+norm(MultByKNoNoiseTerm(V) + - learnInfo.K*V)
 
 
 %TODO: Add Preconditioner.
