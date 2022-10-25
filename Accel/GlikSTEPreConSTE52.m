@@ -13,11 +13,7 @@ N = learnInfo.N;
 n = N;
 D = d;
 
-%New constant settings.
-% M = obsInfo.M;
-% LForDecomp = obsInfo.L;
-% n = learnInfo.N;
-% D = learnInfo.d;
+
 
 
 
@@ -120,7 +116,7 @@ for i = 1 : l
 
 
    
-    %This is decreasing order. Doesn't matter n=8 - TODO investigate further.
+    %This is decreasing order.
     [W,lambdas] = eig(T);
     gamVal = 0;
 
@@ -141,6 +137,11 @@ gammas(indexesNAN) = 0;
 
 %Now we adjust l so we don't divide by extra weights we didn't use.
 trueL = l - sum(indexesNAN);
+
+% sumgam = sum(gammas)
+% logDetPreCon = logDetPreCon
+% actuallogdet = log(det(pinv(PreConInvRaw)))
+% actualtracelogm = trace(logm(pinv(PreConInvRaw)))
 
 %Make tau.
 tau_star = logDetPreCon / 2 + (n*M*D*LForDecomp / (2*trueL)) * sum(gammas);
@@ -165,7 +166,8 @@ dfval(7) = u'* Ydb;
 
 
 %Estimate the noise derivative.
-tau_star = HutchinsonEst(multByKInv, l, n*D*M*LForDecomp);
+%tau_star = HutchinsonEst(multByKInv, l, n*D*M*LForDecomp);
+tau_star = HutchPlusPlus(multByKInv, l, n*D*M*LForDecomp);
 
 %Use the trace commutative identity tr(xx') = x'x.
 dfval(5) = -u' * u * sigma + tau_star * sigma;
@@ -179,7 +181,9 @@ MultBydKdeltaE = @(x) (2) * MultByKE(x);
 %Now do the trace estimation for the second term of this derivative.
 MultByKInvTimesdKdeltaE = @(x) multByKInv(MultBydKdeltaE(x));
 
-traceEstKInvTimesdKdeltaE = HutchinsonEst(MultByKInvTimesdKdeltaE, l, n*D*M*LForDecomp);
+%traceEstKInvTimesdKdeltaE = HutchinsonEst(MultByKInvTimesdKdeltaE, l, n*D*M*LForDecomp);
+
+traceEstKInvTimesdKdeltaE = HutchPlusPlus(MultByKInvTimesdKdeltaE, l, n*D*M*LForDecomp);
 
 dfval(1) = -1*(1/2 * u' * MultBydKdeltaE(u) - 1/2 * traceEstKInvTimesdKdeltaE);
 
@@ -191,7 +195,9 @@ MultBydKdeltaA = @(x) (2) * MultByKA(x);
 %Now do the trace estimation for the second term of this derivative.
 MultByKInvTimesdKdeltaA = @(x) multByKInv(MultBydKdeltaA(x));
 
-traceEstKInvTimesdKdeltaA = HutchinsonEst(MultByKInvTimesdKdeltaA, l, n*D*M*LForDecomp);
+%traceEstKInvTimesdKdeltaA = HutchinsonEst(MultByKInvTimesdKdeltaA, l, n*D*M*LForDecomp);
+
+traceEstKInvTimesdKdeltaA = HutchPlusPlus(MultByKInvTimesdKdeltaA, l, n*D*M*LForDecomp);
 
 dfval(3) = -1*(1/2 * u' * MultBydKdeltaA(u) - 1/2 * traceEstKInvTimesdKdeltaA);
 
@@ -205,7 +211,11 @@ MultKEPartial = @(x) KEPartial * x;
 
 
 MultByKInvTimesdKomegaE = @(x) multByKInv(MultKEPartial(x));
-traceEstKInvTimesdKomegaE = HutchinsonEst(MultByKInvTimesdKomegaE, l, n*D*M*LForDecomp);
+%traceEstKInvTimesdKomegaE = HutchinsonEst(MultByKInvTimesdKomegaE, l, n*D*M*LForDecomp);
+
+
+traceEstKInvTimesdKomegaE = HutchPlusPlus(MultByKInvTimesdKomegaE, l, n*D*M*LForDecomp);
+
 
 dfval(2) = -1*(1/2 * u' * MultKEPartial(u) - 1/2 * traceEstKInvTimesdKomegaE);
 
@@ -218,7 +228,7 @@ MultKAPartial = @(x) KAPartial * x;
 
 MultByKInvTimesdKomegaA = @(x) multByKInv(MultKAPartial(x));
 
-traceEstKInvTimesdKomegaA = HutchinsonEst(MultByKInvTimesdKomegaA, l, n*D*M*LForDecomp);
+traceEstKInvTimesdKomegaA = HutchPlusPlus(MultByKInvTimesdKomegaA, l, n*D*M*LForDecomp);
 
 dfval(4) = -1*(1/2 * u' * MultKAPartial(u) - 1/2 * traceEstKInvTimesdKomegaA);
 
