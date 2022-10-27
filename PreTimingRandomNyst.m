@@ -1,11 +1,40 @@
+
 clear all;
 addpaths;
 
-load("FM20M30.mat")
+
+MVAL = 3;
+
+%load("FM20M30.mat");
+%load("FM30v2.mat");
+%load("FM20v2.mat");
+%load("FM15v2.mat");
+
+%load("FM5105Attempt.mat");
+%load("AD20.mat");
+%load("FM10105Attempt.mat");
+%load("FM15105Attempt.mat");
+%load("FM20105Attempt.mat");
+
+firstpart = strcat("FM1010",num2str(MVAL));
+fullname = strcat(firstpart, "Mix.mat");
+load(fullname);
+
+
+% load("FM10101Mix.mat");
+% load("FM10102Mix.mat");
+% load("FM10103Mix.mat");
+% load("FM10104Mix.mat");
+% load("FM10105Attempt.mat");
+% load("FM10106Mix.mat");
+% load("FM10107Mix.mat");
+% load("FM10108Mix.mat");
+% load("FM10109Mix.mat");
+% load("FM101010Mix.mat");
 
 learnInfo.v = 5/2;
 
-learnInfo.hyp = [1, 1, 1, 1, 0.5, 1, 1];
+
 
 M = obsInfo.M;
 LForDecomp = obsInfo.L;
@@ -13,21 +42,31 @@ n = learnInfo.N;
 D = learnInfo.d;
 
 %Adjustable parameters.
-CGErrorTol = 10^(-6);
+CGErrorTol = 10^(-7);
 CG_ITER_LIMIT = 150;
-mFORGLIK = 150;
-lFORGLIK = 150;
-rangeOfI = 40;
+mFORGLIK = CG_ITER_LIMIT;
+lFORGLIK = CG_ITER_LIMIT;
+rangeOfI = floor(M*LForDecomp*n*D / 10);
 jitter = 10^(-6);
 HVAL = 10^(-5);
 GlikRuns = 100;
+alpha = 0.5;
 
+
+%originalHyps = [1, 1, 1, 1, 0.5, 1, 1];
+originalHyps = alpha * (2 * rand(1,7) - 1);
+originalHyps(5) = log(0.1) + alpha * (2 * rand(1,1) -1);
+originalHyps(6) = log(1.5) + alpha * (2 * rand(1,1) -1);
+originalHyps(7) = log(0.5) + alpha * (2 * rand(1,1) -1);
+
+learnInfo.hyp = originalHyps;
+%learnInfo.hyp = [1, 1, 1, 1, 0.5];
 
 %Decomp for K_E.
 data = learnInfo.xpath_train(1:D*n,:,:);
 dataA = learnInfo.xpath_train(D*n+1:2*D*n,:,:);
 
-nT = 10;     %number of trials
+nT = 1;     %number of trials
 errorphis = zeros(4,nT);      %store errors of phis in L-infinity and L2rhoT norms
 errortrajs_train = zeros(4,nT);     %store mean and std of trajectory error in training data
 errortrajs_test = zeros(4,nT);      %store mean and std of trajectory error in testing data
@@ -68,7 +107,7 @@ for k = 1 : nT
 
     
     
-   
+   %return
     
     
     
@@ -77,13 +116,23 @@ for k = 1 : nT
     
     
     %START GREATEST LIKELIHOOD
-    learnInfo.hyp = [1, 1, 1, 1, 0.5, 1, 1];
+    learnInfo.hyp = originalHyps;
     [fval, dfval,~] = GlikSTEPreConSTE52(learnInfo, learnInfo.hyp, mFORGLIK, lFORGLIK, CGErrorTol, HVAL, M, rangeOfI, @RandomNyst);
     
     Glik_hyp = @(hyp)GlikSTEPreConSTE52(learnInfo, hyp, mFORGLIK, lFORGLIK, CGErrorTol, HVAL, M, rangeOfI, @RandomNyst);
     
     [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -GlikRuns);
     runtimes(2,k) = toc;
+
+    %Next, try to run the standard Glik exactly once? Break into bottom of
+    %basin of attraction? Can we possibly anneal with this problem?
+%     learnInfo.option = 'subset';  % doesn't work for ODS
+%     learnInfo.Nsub = floor(n/3);
+%     learnInfo.sub = randsample(1:learnInfo.N,learnInfo.Nsub);
+%     
+%     Glik_hyp = @(hyp)Glik(learnInfo,hyp);
+%     %One max line search?
+%     [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, 1);
     
 
 
@@ -108,7 +157,10 @@ for k = 1 : nT
     end
     
     
-
+X = learnInfo.X;
+dN = learnInfo.d*learnInfo.N*learnInfo.order;
+L = length(X)/dN;
+LForDecomp = L / M;
     
     
     [U_sE, R_sE, ~, ~] = TotalDecompForDebug52(data, data, omegaE, deltaE, n, D, M, LForDecomp); 
@@ -150,8 +202,8 @@ for k = 1 : nT
     errortrajs_test(:,k) = [result_test.train_traj_error result_test.prediction_traj_error]';
     runtimes(4,k) = toc;
 
-save("PostIterationRN20M30");
-
+    filename = strcat("RNystITER",num2str(MVAL));
+    save(filename);
 
 
 end
@@ -197,4 +249,7 @@ stdetest
 hypparameters
 
 
-save("RandomNystDone20M30");
+
+filename = strcat("RNystResult",num2str(MVAL));
+
+save(filename);

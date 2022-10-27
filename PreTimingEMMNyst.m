@@ -1,7 +1,9 @@
 clear all;
 addpaths;
 
-load("FM20M30.mat")
+%load("FM20M30.mat")
+%load("FM30M9");
+load("FM20v2")
 
 learnInfo.v = 5/2;
 
@@ -17,7 +19,7 @@ CGErrorTol = 10^(-6);
 CG_ITER_LIMIT = 150;
 mFORGLIK = 150;
 lFORGLIK = 150;
-rangeOfI = 8;
+rangeOfI = 20;
 jitter = 10^(-6);
 HVAL = 10^(-5);
 GlikRuns = 100;
@@ -27,7 +29,7 @@ GlikRuns = 100;
 data = learnInfo.xpath_train(1:D*n,:,:);
 dataA = learnInfo.xpath_train(D*n+1:2*D*n,:,:);
 
-nT = 10;     %number of trials
+nT = 1;     %number of trials
 errorphis = zeros(4,nT);      %store errors of phis in L-infinity and L2rhoT norms
 errortrajs_train = zeros(4,nT);     %store mean and std of trajectory error in training data
 errortrajs_test = zeros(4,nT);      %store mean and std of trajectory error in testing data
@@ -74,10 +76,13 @@ for k = 1 : nT
 
     tic;
 
+    %learnInfo.option = "alldata";
     %Single run for timing.
+    %[fval, dfval,~] = Glik(learnInfo,learnInfo.hyp)
+
     [fval2, dfval2,~] = GlikSTEPreConSTE52(learnInfo, learnInfo.hyp, mFORGLIK, lFORGLIK, CGErrorTol, HVAL, M, rangeOfI, @EMMNyst)
     runtimes(1,k) = toc;
-    
+    return
 
     
     %START GREATEST LIKELIHOOD
@@ -156,7 +161,7 @@ for k = 1 : nT
 
 
 
-    save("PostIterationEMM20M30");
+    save("PostIterationEMM30M9");
 
 
 
@@ -203,5 +208,5 @@ avgetest
 stdetest
 
 
-save("EMMDone20M30");       
+save("EMMDone30M9");       
 

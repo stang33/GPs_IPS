@@ -69,12 +69,16 @@ function [logDetPreCon, PreConInvRaw] = EMMNyst(learnInfo, LForDecomp, M, rangeO
     
     for i = 1 : rank
         
-        singval = S(i);
-        col = U(:,i);
-        Aplus = Aplus + (1.0 / singval) * (col * col.');
+        singval = S(i)
+        if singval > 10^(-8) %cut out low ones?
+            col = U(:,i)
+            Aplus = Aplus + (1.0 / singval) * (col * col.')
+        end
     
     end
     
+    Aplus = Aplus
+
     R = PTKP(1:rank,:);
 
     %Get output.
@@ -87,7 +91,29 @@ function [logDetPreCon, PreConInvRaw] = EMMNyst(learnInfo, LForDecomp, M, rangeO
     mat = pinv(Aplus) + 1/sigma * (R * R');
     symmat = (mat + mat') / 2;
 
-    logDetPreCon = trace(logm(symmat)) + trace(logm(Aplus)) + D*M*N*LForDecomp * log(sigma);
+    %symmattrace = trace(logm(symmat))
+    aplustrace = trace(logm(Aplus))
+    %loggg = D*M*N*LForDecomp * log(sigma)
+
+    symA = (Aplus + Aplus') / 2
+    aplustraceSYM = trace(logm(symA))
+
+    e = eig(symA)
+    %agh = e(1)
+    %hi = chol(symA)
+    
+    tracelogsymA = 0;
+    for i = 1 : rank
+        if e(i) > 10^(-10) %0
+            tracelogsymA = tracelogsymA + log(e(i));
+        end
+    end
+    tracelogsymA = tracelogsymA
+    trace(logm(symA))
+
+    ISTHISOFF = trace(logm(symmat))
+
+    logDetPreCon = trace(logm(symmat)) + tracelogsymA + D*M*N*LForDecomp * log(sigma);
     
 
 end

@@ -9,6 +9,8 @@ function [logDetPreCon, PreConInvRaw] = RandomNyst(learnInfo, LForDecomp, M, ran
 
     K = KE + KA + jitter * eye(M*LForDecomp*N*D);
 
+    K = (K + K') / 2;
+
     rank = rangeOfI;
 
     perm = randperm(N*D*M*LForDecomp);
@@ -23,6 +25,8 @@ function [logDetPreCon, PreConInvRaw] = RandomNyst(learnInfo, LForDecomp, M, ran
     
     %Permute rows and columns to get the columns we want to use.
     PTKP = K(perm, perm);
+
+    
     
     A = PTKP(1:rank, 1:rank);
     
@@ -31,10 +35,17 @@ function [logDetPreCon, PreConInvRaw] = RandomNyst(learnInfo, LForDecomp, M, ran
     for i = 1 : rank
         
         singval = S(i);
-        col = U(:,i);
-        Aplus = Aplus + (1.0 / singval) * (col * col.');
-    
+
+        if singval > 0
+            col = U(:,i);
+            Aplus = Aplus + (1.0 / singval) * (col * col.');
+        else
+            WARNINGSMALLSINGVAL = 9
+        end
+
     end
+
+    %chol(Aplus)
     
     R = PTKP(1:rank,:);
     
