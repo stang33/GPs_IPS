@@ -4,6 +4,17 @@ function RNystRun(MVAL)
 
 addpaths;
 
+%Load data.
+firstpart = strcat("FM1011",num2str(MVAL));
+fullname = strcat(firstpart, "FixL.mat");
+load(fullname);
+
+%Constants.
+learnInfo.v = 5/2;
+M = obsInfo.M;
+LForDecomp = obsInfo.L;
+n = learnInfo.N;
+D = learnInfo.d;
 
 %Adjustable parameters.
 CGErrorTol = 10^(-6);
@@ -18,17 +29,6 @@ alpha = 1;
 nT = 4;     %number of trials
 
 
-%Load data.
-firstpart = strcat("FM1011",num2str(MVAL));
-fullname = strcat(firstpart, "FixL.mat");
-load(fullname);
-
-%Constants.
-learnInfo.v = 5/2;
-M = obsInfo.M;
-LForDecomp = obsInfo.L;
-n = learnInfo.N;
-D = learnInfo.d;
 
 %Decomp for K_E.
 data = learnInfo.xpath_train(1:D*n,:,:);
