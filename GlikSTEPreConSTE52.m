@@ -4,6 +4,7 @@ function [fval, dfval,learnInfo] = GlikSTEPreConSTE52(learnInfo, hyp, m, l, CGEr
 STRICT_CG_ITER_LIMIT = 1000;
 StrictCGErrorTol = 10^(-10);
 
+%Assign needed quantites from data.
 X = learnInfo.X;
 Y = learnInfo.Y;
 dN = learnInfo.d*learnInfo.N*learnInfo.order;
@@ -45,6 +46,32 @@ MultByKA = @(x) KA * x;
 jitter = 10^(-6);
 [logDetPreCon, PreConInvRaw] = PreconMethod(learnInfo, LForDecomp, M, rangeOfI, jitter, KE, KA, sigma);
 PreConInv = @(x) PreConInvRaw*x;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Let me try to understand
+% I am talking about RandomNyst.m
+% Q1: Is P for K or K+sigmaI? 
+% Q2: PreConInvRaw = inv(P)?
+% Q3: logDetPreCon = log(det(P))?
+% 
+% Q1: P is an approximation of only K, not K+sigmaI. This is because
+%     our goal is to construct a preconditioner that is easy to invert.
+%     We hope that P if approximates K, then P+sigmaI will approximate K+sigmaI.
+%     This allows us to invert P+sigmaI quickly, as the Woodbury inversion
+%     formula allows us to only invert explicitly matrices of reduced rank,
+%     namely the rank of our preconditioner.
+%
+% Q2: PreConInvRaw = inv(P + sigmaI)
+%
+% Q3: logDetPreCon = log(det(P + sigmaI)). By taking the log of the Woodbury
+%     formula, we can avoid taking the trace log of the entire matrix, and
+%     again only evaluate matrix logarithms up to the rank.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
 
 %Multiply by K + sigmaI.
 MultByWholeK = @(x) MultByKE(x) + MultByKA(x) + sigma*x;
@@ -111,6 +138,42 @@ trueL = l - sum(indexesNAN);
 
 %Make tau.
 tau_star = logDetPreCon / 2 + (n*M*D*LForDecomp / (2*trueL)) * sum(gammas);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% I can not understand two things
+% Q1: why it is 2*trueL? according to formulas, is it the number of vector
+% used in probing vectors?
+% Q2: The weights coming from the matrix T is to compute log(Det(K+sigma)
+%  I think if you have  computed logDetPreCon=log(det(P)), the right thing to compute
+%  should be logdet(inv(P)*(K+sigmaI)), are you sure this is
+%  (n*M*D*LForDecomp / (2*trueL)) * sum(gammas);?
+%
+% Q1: We need 1/2 * fval. The trueL issue is an interesting one. There are
+% times that we converge to numerical roundoff error in our PCG BEFORE we have
+% completed the desired number of PCG runs. This will be reflected in
+% Lanczos weights that are 0. Thus we will have a gamma value that is NaN.
+% We disregard these, and generally we must just be careful to not request
+% too high of a number of Lanczos weights that we consistently hit
+% numerical zero before completiton, or we may accidentally have
+% sum(gammas) = 0 and trueL = 0, which means fval is NaN. If this ever
+% happens, huge errors are reported by the compiler, and I believe I have
+% tuned the values well enough to consistently have very very few gamma
+% values that error out to NaN.
+%
+% Q2: The term (n*M*D*LForDecomp / (2*trueL)) * sum(gammas) approximates
+% the log det[(P + sigmaI)^(-1) (K + sigmaI)]. This formula comes from
+% the Lanczos algorithm. We then add the log(det(P+sigmaI)) and rescale by
+% our constants to ensure we match the form of the actual maximum
+% likelihood function when using a kernel of our specified size.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
 
 %Here's a good approx for fval.
 fval = 1/2*Ym'*u + tau_star + log(2*pi)*(dN1*L)/2;
