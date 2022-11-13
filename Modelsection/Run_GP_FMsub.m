@@ -11,15 +11,50 @@ time_stamp                      = datestr(now, 30);
 if ~exist('Params','var'), Params = [];     end
 if ~exist(SAVE_DIR,'dir'), mkdir(SAVE_DIR); end
 
-%% Load example definitions and let user select one example to run
-Examples                        = LoadExampleDefinitions();
-ExampleIdx                      = SelectExample(Params, Examples);
+%% Load FM example definitions and let user select number of agent
+sysInfo.name            = 'FM';                                                   % name of the dynamics
+sysInfo.d               = 2;                                                      % dimension for the state vector (in this case, opinion vector)
+
+prompt = "\n Number of agents: ";
+sysInfo.N = input(prompt);                                                               % # of agents
+
+sysInfo.phi            = {@(r)FM_kernel(r,sysInfo.N), @(v,d) FM_ncforce(v,d)};                                               % energy based interaction
+sysInfo.phi_type        = 'E';
+sysInfo.K               = 1;                                                                       % # of types
+sysInfo.ode_order       = 2;                                                                       % order of the ODE system
+sysInfo.type_info       = ones(1, sysInfo.N);                                                     % function mapping agent index to its type index
+sysInfo.RE              = [];   % energy based reulation on interactoin beween agent i and agent i'
+
+sysInfo.mu0             = @() FM_init_config(-0.5, 0.5, 0, 0, sysInfo.d, sysInfo.N,1); 
+sysInfo.T_f             = 10;                                                                    % final time the system will reach steady state
+sysInfo.domain          = [0, 10];
+sysInfo.type = 1;
+sysInfo.type_info = ones(sysInfo.N,1);
+% ODE solver
+solverInfo.time_span    = [0, sysInfo.T_f];                                                       % put it into the time_span vector, always starting from 0
+solverInfo.option = odeset('RelTol',1e-5,'AbsTol',1e-6);
+
+% Observations
+obsInfo.M               = 3;                                                                      % # trajectories with random initial conditions for learning interaction kernel
+obsInfo.time_vec = 0:2.5:5;
+% Observations will be up to this time
+obsInfo.use_derivative  = true;                                                                   % indicator of the availability of derivative data
+obsInfo.obs_noise       = 0.1;
+obsInfo.mu_trajnoise    = @(traj,sigma) trajUnifNoiseAdditive( traj, sigma );
+obsInfo.rho_T_histedges    = linspace(0,sysInfo.domain(2),1000);  % a rather arbitrary set of bins to track estimators of \rho^L_T
+
+
+% % package the data
+% Example.sysInfo         = sysInfo;
+% Example.solverInfo      = solverInfo;
+% Example.obsInfo         = obsInfo;
+
 
 %% Get example parameters
-Example                         = Examples{ExampleIdx};
-sysInfo                        = Example.sysInfo;
-solverInfo                     = Example.solverInfo;
-obsInfo                        = Example.obsInfo;                                                 % move n to learn_info
+% Example                         = Examples{ExampleIdx};
+% sysInfo                        = Example.sysInfo;
+% solverInfo                     = Example.solverInfo;
+% obsInfo                        = Example.obsInfo;                                                 % move n to learn_info
 obsInfo.VERBOSE                = VERBOSE;
 obsInfo.SAVE_DIR               = SAVE_DIR;
 
@@ -48,22 +83,6 @@ learnInfo.dtraj ='false'; % do not compute dtraj during trajectory computation
 
 learnInfo.v = 3/2; % 1/2, 3/2, 5/2, 7/2
 
-if strcmp('ODS',learnInfo.name)   
-   learnInfo.hyp0 = log([1  1 NaN 1/2 exp(1/2) exp(1/2) exp(1/2)]); % initialization of logsigma logomega, lognoise, logk, Pa, Pb, Pc
-   if obsInfo.obs_noise ~= 0
-       learnInfo.hyp0(3) = log(1/2);
-   end
-end
-
-if strcmp('CSF',learnInfo.name) 
-   hyp_true = [1; 2];
-   % learnInfo.hyp0 = log([1  1  1  1 NaN 1/2 3/2]); % initialization of logsigma_E logomega_E, logsigma_A logomega_A lognoise, loga, logb
-   learnInfo.hyp0 = log([rand(1,4) NaN rand(1,2)]);
-   if obsInfo.obs_noise ~= 0
-       % learnInfo.hyp0(5) = log(1/2);
-       learnInfo.hyp0(5) = log(rand(1));
-   end
-end
 
 if strcmp('FM',learnInfo.name) 
    hyp_true = [1.5; 0.5];
@@ -76,17 +95,9 @@ if strcmp('FM',learnInfo.name)
 end
 
 
-if strcmp('AD',learnInfo.name) 
-   % learnInfo.hyp0 = log([1  1  1  1 NaN]); % initialization of logsigma_E, logomega_E,logsigma_A, logomega_A, lognoise
-   learnInfo.hyp0 = log([rand(1,4) NaN]);
-   if obsInfo.obs_noise ~= 0
-       % learnInfo.hyp0(5) = log(1/2);
-       learnInfo.hyp0(5) = log(rand(1));
-   end
-end
 
 
-nT = 1;     %number of trials
+nT = 10;     %number of trials
 errorphis = zeros(4,nT);      %store errors of phis in L-infinity and L2rhoT norms
 errortrajs_train = zeros(4,nT);     %store mean and std of trajectory error in training data
 errortrajs_test = zeros(4,nT);      %store mean and std of trajectory error in testing data
@@ -133,11 +144,11 @@ for k = 1:nT
     learnInfo.sub = randsample(1:learnInfo.N,learnInfo.Nsub);
     
     Glik_hyp = @(hyp)Glik(learnInfo,hyp);
-    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -100);
+    [learnInfo.hyp,flik,i] = minimize(learnInfo.hyp, Glik_hyp, -600);
     
     learnInfo.option = 'alldata';
     [~, ~,learnInfo] = Glik(learnInfo,learnInfo.hyp);
-    % learnInfo.CoefM = pinv(learnInfo.K)*learnInfo.Ym; % compute the coeficient matrix
+
     
     % Once the kernel is learned, store these once to avoid recomputing.
     learnInfo.invK = pinv(learnInfo.K);
@@ -145,14 +156,11 @@ for k = 1:nT
 
     
     hypparameters(:,k) = exp(learnInfo.hyp);
-    if strcmp('ODS',learnInfo.name) 
-        hypparameters(5:end,k) = learnInfo.hyp(5:end);
-    end
     
     if obsInfo.obs_noise ~= 0
         errorhyp(1,k) = abs(hypparameters(5,k) - obsInfo.obs_noise);
     end
-    if strcmp('CSF',learnInfo.name) || strcmp('FM',learnInfo.name)
+    if strcmp('FM',learnInfo.name)
         errorhyp(2:3,k) = abs(hypparameters(6:7,k) - hyp_true);
     end
         
@@ -174,11 +182,8 @@ end
 % learnInfo = visualize_phis(sysInfo,obsInfo,learnInfo,'A')
 
 %% save files
-if strcmp('subset',learnInfo.option)
-    filename=strcat(sysInfo.name,'N',num2str(learnInfo.N),'S',num2str(learnInfo.Nsub),'M',num2str(obsInfo.M),'L',num2str(length(obsInfo.time_vec)),'sigma',num2str(obsInfo.obs_noise));
-else
-    filename=strcat(sysInfo.name,'N',num2str(learnInfo.N),'M',num2str(obsInfo.M),'L',num2str(length(obsInfo.time_vec)),'sigma',num2str(obsInfo.obs_noise));
-end
+filename=strcat(sysInfo.name,'N',num2str(learnInfo.N),'S',num2str(learnInfo.Nsub),'M',num2str(obsInfo.M),'L',num2str(length(obsInfo.time_vec)),'sigma',num2str(obsInfo.obs_noise));
+
 save(filename, 'sysInfo','obsInfo','learnInfo','errortrajs_train','errortrajs_test','hypparameters','errorphis','errorhyp');
 
 
@@ -192,4 +197,3 @@ save(filename, 'sysInfo','obsInfo','learnInfo','errortrajs_train','errortrajs_te
 % 
 % end
 %  
-
