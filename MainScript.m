@@ -13,7 +13,7 @@ rangeOfI = 100;   %Size of preconditioner. If wanting dynamic size, move down to
 jitter = 10^(-4);   %Value to use for sigma if sigma is too small.
 HVAL = 10^(5);   %NOT USED.
 GlikRuns = 100;   %Runs of minimizing.
-alpha = 0.1;  %Range of randomness in intialization of hyps.
+alpha = 1.0;  %Range of randomness in intialization of hyps.
 nT = 1;     %Number of trials.
 
 
@@ -41,7 +41,7 @@ else
          Example = FM_def();
      else
          fprintf('\n Unknown problem name identifier.');
-         quit
+         %quit
      end
 
 sysInfo                        = Example.sysInfo;
