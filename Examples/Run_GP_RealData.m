@@ -8,7 +8,8 @@ close all;
 %% but we re-calculate the velocity after smoothing.
 
 load 4601_Real_data.mat
-% load 2201_Real_data.mat
+%load 2201_Real_data.mat
+
 
 % calculate the accerlation
 d=2;
