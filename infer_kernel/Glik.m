@@ -184,9 +184,6 @@ elseif strcmp('CSF',name)
 
 elseif strcmp('FM',name)
 
-    partdKo_E = dKo_E(1:20,1:20)
-
-
     Ym = zeros(dNs*L,1);
     Yda = zeros(dNs*L,1);
     Ydb = zeros(dNs*L,1);
