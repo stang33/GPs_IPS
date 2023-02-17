@@ -25,6 +25,7 @@ solverInfo.option = odeset('RelTol',1e-5,'AbsTol',1e-6);
 
 % Observations
 obsInfo.M               = 3;                                                                      % # trajectories with random initial conditions for learning interaction kernel
+obsInfo.L = 4;
 obsInfo.time_vec = 0:5:15;
 % Observations will be up to this time
 obsInfo.use_derivative  = true;                                                                   % indicator of the availability of derivative data

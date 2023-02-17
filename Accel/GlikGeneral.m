@@ -118,8 +118,6 @@ for i = 1 : l
     %Do PCG and track coefs.
     [~,T] = StandardPCGWithT(MultByWholeK, z_i, PreConInv, CGErrorTol, m+1, m);
 
-    %This is decreasing order.
-    % Sui: this is not in decreasing order.
     [W,lambdas] = eig(T);
     gamVal = 0;
 

@@ -29,7 +29,7 @@ obsInfo.M               = 3;                      %used to be 2                 
 obsInfo.time_vec = 0:1:5;
 % Observations will be up to this time
 obsInfo.use_derivative  = true;                                                                   % indicator of the availability of derivative data
-obsInfo.obs_noise       = 0.1; %used to be .1 =sigma^2
+obsInfo.obs_noise       = 0.01; %used to be .1 =sigma^2
 obsInfo.mu_trajnoise    = @(traj,sigma) trajUnifNoiseAdditive( traj, sigma );
 obsInfo.rho_T_histedges    = linspace(0,sysInfo.domain(2),1000);  % a rather arbitrary set of bins to track estimators of \rho^L_T
 

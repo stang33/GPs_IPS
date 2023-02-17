@@ -140,7 +140,7 @@ ax.Position = [left bottom ax_width ax_height];
 
 
 %saveas(phi_fig, [plot_info.plot_name '_phi'], 'fig');
-saveas(phi_fig, fullfile(learnInfo.SAVE_DIR, [plot_info.plot_name '_phi']));
+saveas(phi_fig, fullfile(learnInfo.SAVE_DIR, [plot_info.plot_name strcat('_phi',kernel_type)]));
 
 
 end
