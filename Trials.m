@@ -1,4 +1,6 @@
-MVAL = 3; % obsInfo.M
+function Trials(MVAL)
+
+%MVAL = 3; % obsInfo.M
 PROBLEM_NAME = "FM"; %CSF, AD, or FM
 VERBOSE_RESULTS = true; %print hyperparameters, errors, times etc.
 LearnBasisHyps = false; %learn the hyperparameters 1-4 for Matern basis
@@ -10,9 +12,9 @@ mFORGLIK = CG_ITER_LIMIT;   %Number of test vectors for Lanczos.
 lFORGLIK = CG_ITER_LIMIT;   %Number of CG iters from Lanczos.
 
 jitter = 10^(-4);   %Value to use for sigma if sigma is too small.
-GlikRuns = 20;   %Runs of minimizing.
-alpha = 1.0;  %Range of randomness in intialization of hyps.
-nT = 1;     %Number of trials.
+GlikRuns = 100;   %Runs of minimizing.
+alpha = 0.5;  %UPDATED: Range of randomness in intialization of hyps.
+nT = 12;     %Number of trials.
 nu = 5/2; %1/2, 3/2, 5/2, or 7/2
 
 
@@ -156,120 +158,131 @@ hyp_errors_abs = zeros(3,nT);      %store hyperparameter errors
 
 for k = 1 : nT
 
-    %These are guesses for hyperparameters so we can center
-    %intitialization values for the learned hyperparameters.
-    originalHyps = 0 * learnInfo.hyp0;
-    originalHyps(5) = log(obsInfo.obs_noise);
-    originalHyps(5) = originalHyps(5) + alpha * (2 * rand(1,1) - 1);
+    try
 
-    if strcmp(name,"FM")
-        originalHyps(6) = log(1.5);
-        originalHyps(7) = log(0.5);
-        originalHyps(6) = originalHyps(6) + alpha * (2 * rand(1,1) - 1);
-        originalHyps(7) = originalHyps(7) + alpha * (2 * rand(1,1) - 1);
-    elseif strcmp(name,"CSF")
-        originalHyps(6) = log(1);
-        originalHyps(7) = log(2);
-        originalHyps(6) = originalHyps(6) + alpha * (2 * rand(1,1) - 1);
-        originalHyps(7) = originalHyps(7) + alpha * (2 * rand(1,1) - 1);
+        %These are guesses for hyperparameters so we can center
+        %intitialization values for the learned hyperparameters.
+        originalHyps = 0 * learnInfo.hyp0;
+        originalHyps(5) = log(obsInfo.obs_noise);
+        originalHyps(5) = originalHyps(5) + alpha * (2 * rand(1,1) - 1);
+    
+        if strcmp(name,"FM")
+            originalHyps(6) = log(1.5);
+            originalHyps(7) = log(0.5);
+            originalHyps(6) = originalHyps(6) + alpha * (2 * rand(1,1) - 1);
+            originalHyps(7) = originalHyps(7) + alpha * (2 * rand(1,1) - 1);
+        elseif strcmp(name,"CSF")
+            originalHyps(6) = log(1);
+            originalHyps(7) = log(2);
+            originalHyps(6) = originalHyps(6) + alpha * (2 * rand(1,1) - 1);
+            originalHyps(7) = originalHyps(7) + alpha * (2 * rand(1,1) - 1);
+        end
+    
+        learnInfo.hyp = originalHyps;
+    
+       
+    
+        tic;
+       
+        %Run the actual optimization.
+        learnInfo.hyp = originalHyps;
+    
+        [fval, dfval,~] = GlikMethod(learnInfo, learnInfo.hyp, mFORGLIK, lFORGLIK, CGErrorTol, M, rank, PreconMethod, LearnBasisHyps);
+        Glik_hyp = @(hyp)GlikMethod(learnInfo, hyp, mFORGLIK, lFORGLIK, CGErrorTol, M, rank, PreconMethod, LearnBasisHyps);
+        [learnInfo.hyp,flik,~] = minimize(learnInfo.hyp, Glik_hyp, -GlikRuns);
+        runtimes(1,k) = toc;
+    
+        %Reset to default hyps for basis if needed.
+        if ~LearnBasisHyps
+            learnInfo.hyp(1:4) = [0,0,0,0];
+        end
+    
+        hyp_errors_rel(1,k) = abs(exp(learnInfo.hyp(5))^2 - obsInfo.obs_noise^2) / abs(obsInfo.obs_noise^2);
+        hyp_errors_abs(1,k) = abs(exp(learnInfo.hyp(5))^2 - obsInfo.obs_noise^2);
+    
+        if strcmp(name,"CSF")
+            hyp_errors_rel(2,k) = abs(exp(learnInfo.hyp(6)) - 1) / abs(1);
+            hyp_errors_rel(3,k) = abs(exp(learnInfo.hyp(7)) - 2) / abs(2);
+            hyp_errors_abs(2,k) = abs(exp(learnInfo.hyp(6)) - 1);
+            hyp_errors_abs(3,k) = abs(exp(learnInfo.hyp(7)) - 2);
+        elseif strcmp(name,"FM")
+            hyp_errors_rel(2,k) = abs(exp(learnInfo.hyp(6)) - 1.5) / abs(1.5);
+            hyp_errors_rel(3,k) = abs(exp(learnInfo.hyp(7)) - 0.5) / abs(0.5);
+            hyp_errors_abs(2,k) = abs(exp(learnInfo.hyp(6)) - 1.5);
+            hyp_errors_abs(3,k) = abs(exp(learnInfo.hyp(7)) - 0.5);
+        end
+    
+    
+        %If accelerated, then we only need Ym to predict.
+        learnInfo.option = 'alldata';
+        learnInfo = GetYm(learnInfo,learnInfo.hyp);
+        
+        %Set final hyperparameters.   
+        hypparameters(:,k) = exp(learnInfo.hyp);
+        deltaE = exp(learnInfo.hyp(1));
+        omegaE = exp(learnInfo.hyp(2));
+        deltaA = exp(learnInfo.hyp(3));
+        omegaA = exp(learnInfo.hyp(4));
+        sigma = exp(learnInfo.hyp(5))^2;
+        
+        %If sigma is NaN, there is no noise. Still use jitter factor.
+        if isnan(sigma)
+            sigma = jitter;
+        end
+        
+        X = learnInfo.X;
+        dN = learnInfo.d*learnInfo.N*learnInfo.order;
+        L = length(X)/dN;
+        LForDecomp = L / M;
+        
+        %Decompose for the final kernel methods for prediction.
+        KE = ConstructKernelMatrix(data, data, omegaE, deltaE, n, D, M, LForDecomp, learnInfo.v, false); 
+        MultByKE = @(x) KE * x;
+    
+        
+        KA = ConstructKernelMatrix(data, dataA, omegaA, deltaA, n, D, M, LForDecomp, learnInfo.v, false);
+        MultByKA = @(x) KA * x;
+    
+        %Now, we have our explicit kernel. Construct preconditioner.
+        [~, PreConInvRaw] = PreconMethod(rank, jitter, KE, KA, sigma);
+        PreConInv = @(x) PreConInvRaw * x;
+    
+        %Multiply by K + sigmaI.
+        MultByWholeK = @(x) MultByKE(x) + MultByKA(x) + sigma*x;
+        
+        %Multiply by entire (K+sigmaI)^-1.
+        multByKInv = @(x) StandardPCG(MultByWholeK, x, PreConInv, CGErrorTol, lFORGLIK, 0);
+        
+        %Matrix multiplication.
+        multMatByKInv = @(X) RunCGOnMatrixInitGuesser(MultByWholeK, X, PreConInv, CGErrorTol, CG_ITER_LIMIT);
+        
+        learnInfo.invKTimesYm = multByKInv(learnInfo.Ym);
+    
+        %Visualize kernel.
+        visualize_phis_CG(sysInfo,obsInfo,learnInfo,'E', multMatByKInv);
+        visualize_phis_CG(sysInfo,obsInfo,learnInfo,'A', multMatByKInv);
+        runtimes(2,k) = toc;
+        
+        
+        %Calculate errors.
+        range = [0, learnInfo.rhoLT.edges(max(find(learnInfo.rhoLT.rdens~=0)))];
+        [learnInfo, errorphis(1,k),errorphis(2,k)] = errornorms_phis_CG(sysInfo,obsInfo,learnInfo,range,'E', multMatByKInv);
+        [learnInfo, errorphis(3,k),errorphis(4,k)] = errornorms_phis_CG(sysInfo,obsInfo,learnInfo,range,'A', multMatByKInv);
+        result_train = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo, learnInfo.xpath_train(:,1,:));
+        errortrajs_train(:,k) = [result_train.train_traj_error result_train.prediction_traj_error]';
+        result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
+        errortrajs_test(:,k) = [result_test.train_traj_error result_test.prediction_traj_error]';
+        runtimes(3,k) = toc;
+
+        fullname = strcat(strcat(PROBLEM_NAME, strcat("_M",num2str(MVAL))),"_ITER");
+        save(fullfile(learnInfo.SAVE_DIR, fullname));
+
+    catch
+
+        %Put a marker that this run failed critically.
+        runtimes(1,k) = -7;
+
     end
-
-    learnInfo.hyp = originalHyps;
-
-   
-
-    tic;
-   
-    %Run the actual optimization.
-    learnInfo.hyp = originalHyps;
-
-    [fval, dfval,~] = GlikMethod(learnInfo, learnInfo.hyp, mFORGLIK, lFORGLIK, CGErrorTol, M, rank, PreconMethod, LearnBasisHyps);
-    Glik_hyp = @(hyp)GlikMethod(learnInfo, hyp, mFORGLIK, lFORGLIK, CGErrorTol, M, rank, PreconMethod, LearnBasisHyps);
-    [learnInfo.hyp,flik,~] = minimize(learnInfo.hyp, Glik_hyp, -GlikRuns);
-    runtimes(1,k) = toc;
-
-    %Reset to default hyps for basis if needed.
-    if ~LearnBasisHyps
-        learnInfo.hyp(1:4) = [0,0,0,0];
-    end
-
-    hyp_errors_rel(1,k) = abs(exp(learnInfo.hyp(5))^2 - obsInfo.obs_noise^2) / abs(obsInfo.obs_noise^2);
-    hyp_errors_abs(1,k) = abs(exp(learnInfo.hyp(5))^2 - obsInfo.obs_noise^2);
-
-    if strcmp(name,"CSF")
-        hyp_errors_rel(2,k) = abs(exp(learnInfo.hyp(6)) - 1) / abs(1);
-        hyp_errors_rel(3,k) = abs(exp(learnInfo.hyp(7)) - 2) / abs(2);
-        hyp_errors_abs(2,k) = abs(exp(learnInfo.hyp(6)) - 1);
-        hyp_errors_abs(3,k) = abs(exp(learnInfo.hyp(7)) - 2);
-    elseif strcmp(name,"FM")
-        hyp_errors_rel(2,k) = abs(exp(learnInfo.hyp(6)) - 1.5) / abs(1.5);
-        hyp_errors_rel(3,k) = abs(exp(learnInfo.hyp(7)) - 0.5) / abs(0.5);
-        hyp_errors_abs(2,k) = abs(exp(learnInfo.hyp(6)) - 1.5);
-        hyp_errors_abs(3,k) = abs(exp(learnInfo.hyp(7)) - 0.5);
-    end
-
-
-    %If accelerated, then we only need Ym to predict.
-    learnInfo.option = 'alldata';
-    learnInfo = GetYm(learnInfo,learnInfo.hyp);
-    
-    %Set final hyperparameters.   
-    hypparameters(:,k) = exp(learnInfo.hyp);
-    deltaE = exp(learnInfo.hyp(1));
-    omegaE = exp(learnInfo.hyp(2));
-    deltaA = exp(learnInfo.hyp(3));
-    omegaA = exp(learnInfo.hyp(4));
-    sigma = exp(learnInfo.hyp(5))^2;
-    
-    %If sigma is NaN, there is no noise. Still use jitter factor.
-    if isnan(sigma)
-        sigma = jitter;
-    end
-    
-    X = learnInfo.X;
-    dN = learnInfo.d*learnInfo.N*learnInfo.order;
-    L = length(X)/dN;
-    LForDecomp = L / M;
-    
-    %Decompose for the final kernel methods for prediction.
-    KE = ConstructKernelMatrix(data, data, omegaE, deltaE, n, D, M, LForDecomp, learnInfo.v, false); 
-    MultByKE = @(x) KE * x;
-
-    
-    KA = ConstructKernelMatrix(data, dataA, omegaA, deltaA, n, D, M, LForDecomp, learnInfo.v, false);
-    MultByKA = @(x) KA * x;
-
-    %Now, we have our explicit kernel. Construct preconditioner.
-    [~, PreConInvRaw] = PreconMethod(rank, jitter, KE, KA, sigma);
-    PreConInv = @(x) PreConInvRaw * x;
-
-    %Multiply by K + sigmaI.
-    MultByWholeK = @(x) MultByKE(x) + MultByKA(x) + sigma*x;
-    
-    %Multiply by entire (K+sigmaI)^-1.
-    multByKInv = @(x) StandardPCG(MultByWholeK, x, PreConInv, CGErrorTol, lFORGLIK, 0);
-    
-    %Matrix multiplication.
-    multMatByKInv = @(X) RunCGOnMatrixInitGuesser(MultByWholeK, X, PreConInv, CGErrorTol, CG_ITER_LIMIT);
-    
-    learnInfo.invKTimesYm = multByKInv(learnInfo.Ym);
-
-    %Visualize kernel.
-    visualize_phis_CG(sysInfo,obsInfo,learnInfo,'E', multMatByKInv);
-    visualize_phis_CG(sysInfo,obsInfo,learnInfo,'A', multMatByKInv);
-    runtimes(2,k) = toc;
-    
-    
-    %Calculate errors.
-    range = [0, learnInfo.rhoLT.edges(max(find(learnInfo.rhoLT.rdens~=0)))];
-    [learnInfo, errorphis(1,k),errorphis(2,k)] = errornorms_phis_CG(sysInfo,obsInfo,learnInfo,range,'E', multMatByKInv);
-    [learnInfo, errorphis(3,k),errorphis(4,k)] = errornorms_phis_CG(sysInfo,obsInfo,learnInfo,range,'A', multMatByKInv);
-    result_train = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo, learnInfo.xpath_train(:,1,:));
-    errortrajs_train(:,k) = [result_train.train_traj_error result_train.prediction_traj_error]';
-    result_test = construct_and_compute_traj(sysInfo,obsInfo,solverInfo,learnInfo,sysInfo.mu0());
-    errortrajs_test(:,k) = [result_test.train_traj_error result_test.prediction_traj_error]';
-    runtimes(3,k) = toc;
-
 
 
 end
@@ -278,7 +291,7 @@ end
 if VERBOSE_RESULTS
 
     %Print results for ease of use.
-    runtimes
+    %runtimes
     
     avgtime = zeros(3,1);
     stdtime = zeros(3,1);
@@ -288,8 +301,8 @@ if VERBOSE_RESULTS
         stdtime(i,1) = std(runtimes(i,:));
     end
     
-    avgtime
-    stdtime
+%     avgtime
+%     stdtime
     
     avgkerror = zeros(4,1);
     stdkerror = zeros(4,1);
@@ -307,17 +320,17 @@ if VERBOSE_RESULTS
         stdetest(i,1) = std(errortrajs_test(i,:));
     end
     
-    avgkerror
-    stdkerror
-    avgetrain
-    stdetrain
-    avgetest
-    stdetest
-    
-    hypparameters
-    
-    hyp_errors_rel
-    hyp_errors_abs
+%     avgkerror
+%     stdkerror
+%     avgetrain
+%     stdetrain
+%     avgetest
+%     stdetest
+%     
+%     hypparameters
+%     
+%     hyp_errors_rel
+%     hyp_errors_abs
     
     av_rel_error = zeros(3,1);
     av_abs_error = zeros(3,1);
@@ -340,4 +353,4 @@ save(fullfile(learnInfo.SAVE_DIR, fullname));
 
 
 
-
+end
